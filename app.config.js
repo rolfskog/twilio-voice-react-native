@@ -8,9 +8,9 @@ const withTwilioVoiceAndroid = require('./expo-config-plugin/android');
 module.exports = function withTwilioVoice(config) {
   // Apply the iOS plugin
   config = withTwilioVoiceIOS(config);
-  
+
   // Apply the Android plugin
   config = withTwilioVoiceAndroid(config);
-  
+
   return config;
 };

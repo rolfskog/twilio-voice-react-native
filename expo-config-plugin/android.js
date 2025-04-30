@@ -1,4 +1,8 @@
-const { withAndroidManifest, withAppBuildGradle, withProjectBuildGradle } = require('@expo/config-plugins');
+const {
+  withAndroidManifest,
+  withAppBuildGradle,
+  withProjectBuildGradle,
+} = require('@expo/config-plugins');
 
 /**
  * Adds the required Android permissions and configurations for Twilio Voice to work with Expo
@@ -21,7 +25,7 @@ const withTwilioVoiceAndroid = (config) => {
       'android.permission.RECORD_AUDIO',
       'android.permission.MODIFY_AUDIO_SETTINGS',
       'android.permission.ACCESS_NETWORK_STATE',
-      'android.permission.WAKE_LOCK'
+      'android.permission.WAKE_LOCK',
     ];
 
     // Add Bluetooth permissions based on Android version
@@ -33,42 +37,49 @@ const withTwilioVoiceAndroid = (config) => {
     permissions.push('android.permission.POST_NOTIFICATIONS');
 
     // Add each permission if not already present
-    permissions.forEach(permission => {
-      if (!androidManifest.manifest['uses-permission'].some(p => p.$['android:name'] === permission)) {
+    permissions.forEach((permission) => {
+      if (
+        !androidManifest.manifest['uses-permission'].some(
+          (p) => p.$['android:name'] === permission
+        )
+      ) {
         androidManifest.manifest['uses-permission'].push({
           $: {
-            'android:name': permission
-          }
+            'android:name': permission,
+          },
         });
       }
     });
 
     // Add the service for handling Firebase messages if not already present
-    if (!mainApplication['service']) {
-      mainApplication['service'] = [];
+    if (!mainApplication.service) {
+      mainApplication.service = [];
     }
 
-    const firebaseServiceExists = mainApplication['service'].some(
-      service => service.$['android:name'] === 'com.twiliovoicereactnative.VoiceFirebaseMessagingService'
+    const firebaseServiceExists = mainApplication.service.some(
+      (service) =>
+        service.$['android:name'] ===
+        'com.twiliovoicereactnative.VoiceFirebaseMessagingService'
     );
 
     if (!firebaseServiceExists) {
-      mainApplication['service'].push({
-        $: {
-          'android:name': 'com.twiliovoicereactnative.VoiceFirebaseMessagingService',
-          'android:exported': 'false'
+      mainApplication.service.push({
+        '$': {
+          'android:name':
+            'com.twiliovoicereactnative.VoiceFirebaseMessagingService',
+          'android:exported': 'false',
         },
         'intent-filter': [
           {
             action: [
               {
                 $: {
-                  'android:name': 'com.google.firebase.MESSAGING_EVENT'
-                }
-              }
-            ]
-          }
-        ]
+                  'android:name': 'com.google.firebase.MESSAGING_EVENT',
+                },
+              },
+            ],
+          },
+        ],
       });
     }
 
@@ -77,33 +88,40 @@ const withTwilioVoiceAndroid = (config) => {
 
   // Add the necessary dependencies to the app build.gradle
   config = withAppBuildGradle(config, (config) => {
-    if (!config.modResults.includes("implementation 'com.twilio:voice-android:")) {
+    if (
+      !config.modResults.includes("implementation 'com.twilio:voice-android:")
+    ) {
       const voiceAndroidVersion = '6.7.1'; // Use the same version as in the original build.gradle
       const audioSwitchVersion = '1.1.8';
-      
+
       // Add the Twilio Voice and AudioSwitch dependencies
       const pattern = /dependencies\s*{/;
       const twilioDependencies = `dependencies {
     implementation 'com.twilio:voice-android:${voiceAndroidVersion}'
     implementation 'com.twilio:audioswitch:${audioSwitchVersion}'`;
-      
-      config.modResults = config.modResults.replace(pattern, twilioDependencies);
+
+      config.modResults = config.modResults.replace(
+        pattern,
+        twilioDependencies
+      );
     }
-    
+
     return config;
   });
 
   // Add the necessary repositories to the project build.gradle
   config = withProjectBuildGradle(config, (config) => {
-    if (!config.modResults.includes('maven { url "https://maven.google.com/" }')) {
+    if (
+      !config.modResults.includes('maven { url "https://maven.google.com/" }')
+    ) {
       const pattern = /allprojects\s*{[^}]*repositories\s*{/;
       const googleMavenRepo = `allprojects {
     repositories {
         maven { url "https://maven.google.com/" }`;
-      
+
       config.modResults = config.modResults.replace(pattern, googleMavenRepo);
     }
-    
+
     return config;
   });
 

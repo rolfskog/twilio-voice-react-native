@@ -6,10 +6,11 @@
  */
 
 import { Platform } from 'react-native';
-import { requireNativeModule } from 'expo-modules-core';
+// Use a more compatible import approach for expo-modules-core
+import * as ExpoModulesCore from 'expo-modules-core';
 import { NativeModule } from './common';
-import type { NativeCallInfo } from './type/Call';
-import type { CustomParameters } from './type/common';
+import { NativeCallInfo } from './type/Call';
+import { CustomParameters } from './type/common';
 
 /**
  * Expo Module for Twilio Voice React Native
@@ -22,7 +23,8 @@ class ExpoVoiceModule {
   constructor() {
     if (Platform.OS === 'android') {
       try {
-        this.androidExpoNativeModule = requireNativeModule('TwilioVoiceExpo');
+        this.androidExpoNativeModule =
+          ExpoModulesCore.requireNativeModule('TwilioVoiceExpo');
       } catch (e) {
         console.error('Failed to load Twilio Voice Expo module:', e);
       }
