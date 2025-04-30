@@ -142,22 +142,47 @@ class ExpoModule(reactContext: ReactApplicationContext) : ExportedModule(reactCo
      * Get the SDK version
      * This is analogous to the voice_getVersion method in the React Native module
      */
-    Function("voice_getVersion") {
-      return@Function Voice.getVersion()
+    @ReactMethod
+    fun voice_getVersion(promise: Promise) {
+      try {
+        val version = Voice.getVersion()
+        promise.resolve(version)
+      } catch (e: Exception) {
+        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
+      }
     }
 
     /**
      * Handle a Firebase message for incoming calls
      * This is analogous to the voice_handleEvent method in the React Native module
      */
-    Function("voice_handleEvent") { remoteMessage: Map<String, String> ->
+    @ReactMethod
+    fun voice_handleEvent(remoteMessage: ReadableMap, promise: Promise) {
       try {
-        val valid = Voice.handleMessage(appContext.reactContext as Context, remoteMessage as Map<String, String>)
-        return@Function valid
+        val messageMap = remoteMessage.toHashMap() as Map<String, String>
+        val valid = Voice.handleMessage(reactApplicationContext as Context, messageMap)
+        promise.resolve(valid)
       } catch (e: Exception) {
         Log.e(TAG, "Error handling message: ${e.message}")
-        throw e
+        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
       }
     }
-  }
+    
+    // Helper method to convert ReadableMap to HashMap
+    private fun ReadableMap.toHashMap(): HashMap<String, Any> {
+      val result = HashMap<String, Any>()
+      val iterator = this.keySetIterator()
+      while (iterator.hasNextKey()) {
+        val key = iterator.nextKey()
+        when (this.getType(key)) {
+          com.facebook.react.bridge.ReadableType.Null -> result[key] = "null"
+          com.facebook.react.bridge.ReadableType.Boolean -> result[key] = this.getBoolean(key)
+          com.facebook.react.bridge.ReadableType.Number -> result[key] = this.getDouble(key)
+          com.facebook.react.bridge.ReadableType.String -> result[key] = this.getString(key) ?: ""
+          com.facebook.react.bridge.ReadableType.Map -> result[key] = this.getMap(key)?.toHashMap() ?: HashMap<String, Any>()
+          else -> result[key] = ""
+        }
+      }
+      return result
+    }
 }

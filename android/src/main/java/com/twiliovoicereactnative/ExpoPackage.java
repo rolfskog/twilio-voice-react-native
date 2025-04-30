@@ -2,9 +2,13 @@ package com.twiliovoicereactnative;
 
 import android.view.View;
 
-import expo.modules.kotlin.AppContext;
-import expo.modules.kotlin.views.ExpoView;
+import com.facebook.react.ReactPackage;
+import com.facebook.react.bridge.NativeModule;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.uimanager.ViewManager;
+
 import expo.modules.core.interfaces.Package;
+import expo.modules.core.interfaces.ReactNativeHostInterface;
 
 import java.util.Collections;
 import java.util.List;
@@ -13,10 +17,15 @@ import java.util.List;
  * Expo Package for Twilio Voice React Native
  * This class registers the Expo Module and Lifecycle Listeners
  */
-public class ExpoPackage implements Package {
+public class ExpoPackage implements Package, ReactPackage {
     @Override
-    public List<Class> createExportedModules() {
-        return Collections.singletonList(ExpoModule.class);
+    public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
+        return Collections.singletonList(new ExpoModule(reactContext));
+    }
+    
+    @Override
+    public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
+        return Collections.emptyList();
     }
 
     @Override
