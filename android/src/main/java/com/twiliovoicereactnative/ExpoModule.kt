@@ -1,51 +1,49 @@
-package com.twiliovoicereactnative
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
-import androidx.annotation.NonNull
-import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactMethod
-import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.bridge.Promise
 import com.twilio.voice.Call
 import com.twilio.voice.CallException
 import com.twilio.voice.ConnectOptions
 import com.twilio.voice.Voice
-import expo.modules.core.ExportedModule
-import expo.modules.core.Promise as ExpoPromise
+
+import expo.modules.kotlin.Promise
+import expo.modules.kotlin.jni.JavaScriptObject
+import expo.modules.kotlin.modules.Module
+import expo.modules.kotlin.modules.ModuleDefinition
+
 import java.util.HashMap
 import java.util.UUID
 
-class ExpoModule(reactContext: ReactApplicationContext) : ExportedModule(reactContext) {
+class ExpoModule : Module() {
   private val TAG = "TwilioVoiceExpoModule"
-  private val mainHandler = Handler(Looper.getMainLooper())
 
-  override fun getName(): String {
-    return "TwilioVoiceExpo"
-  }
+  override fun definition() = ModuleDefinition {
+    Name("TwilioVoiceExpo")
 
-  /**
-   * Connect to a Twilio Voice call with the provided access token and parameters
-   * This is analogous to the voice_connect_android method in the React Native module
-   */
-  @ReactMethod
-  fun voice_connect(accessToken: String, twimlParams: ReadableMap, notificationDisplayName: String?, promise: Promise) {
-    try {
-      val callRecordDatabase = VoiceApplicationProxy.getCallRecordDatabase()
-      val uuid = UUID.randomUUID().toString()
-      val callRecord = callRecordDatabase.create(uuid)
+    /**
+     * Connect to a Twilio Voice call with the provided access token and parameters
+     * This is analogous to the voice_connect method in the ExpoModule.ts
+     */
+    Function("voice_connect") { accessToken: String, params: Map<String, Any>, notificationDisplayName: String? ->
+      try {
+        val context = appContext.reactContext
+        if (context == null) {
+          throw Exception("React context is null")
+        }
 
-      val connectOptionsBuilder = ConnectOptions.Builder(accessToken)
-        .params(twimlParams.toHashMap() as HashMap<String, String>)
+        val callRecordDatabase = VoiceApplicationProxy.getCallRecordDatabase()
+        val uuid = UUID.randomUUID().toString()
+        val callRecord = callRecordDatabase.create(uuid)
 
-      if (notificationDisplayName != null && notificationDisplayName.isNotEmpty()) {
-        connectOptionsBuilder.displayName(notificationDisplayName)
-      }
+        val connectOptionsBuilder = ConnectOptions.Builder(accessToken)
+          .params(params as HashMap<String, String>)
 
-      val connectOptions = connectOptionsBuilder.build()
-      val call = Voice.connect(reactApplicationContext as Context, connectOptions, object : Call.Listener {
+        if (notificationDisplayName != null && notificationDisplayName.isNotEmpty()) {
+          connectOptionsBuilder.displayName(notificationDisplayName)
+        }
+
+        val connectOptions = connectOptionsBuilder.build()
+        val call = Voice.connect(context as Context, connectOptions, object : Call.Listener {
           override fun onConnectFailure(call: Call, callException: CallException) {
             Log.e(TAG, "Connect failure: ${callException.message}")
             callRecordDatabase.remove(uuid)
@@ -80,109 +78,81 @@ class ExpoModule(reactContext: ReactApplicationContext) : ExportedModule(reactCo
         callRecord.setCall(call)
 
         // Return the call info in the same format as the React Native module
-        val result = HashMap<String, Any>()
-        result["uuid"] = uuid
-        result["sid"] = (call.sid ?: "")
-        result["state"] = 0 // CONNECTING state
-        result["from"] = ""
-        result["to"] = ""
-        result["isOnHold"] = false
-        result["isMuted"] = false
-        
-        promise.resolve(result)
+        return@Function mapOf(
+          "uuid" to uuid,
+          "sid" to (call.sid ?: ""),
+          "state" to 0, // CONNECTING state
+          "from" to "",
+          "to" to "",
+          "isOnHold" to false,
+          "isMuted" to false
+        )
       } catch (e: Exception) {
         Log.e(TAG, "Error connecting: ${e.message}")
-        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
+        throw e
       }
     }
 
     /**
      * Register for incoming calls with the provided access token
-     * This is analogous to the voice_register method in the React Native module
+     * This is analogous to the register method in the ExpoModule.ts
      */
-    @ReactMethod
-    fun voice_register(accessToken: String, promise: Promise) {
+    Function("voice_register") { accessToken: String ->
       try {
         // Get the Firebase token and register for incoming calls
         val voiceServiceApi = VoiceApplicationProxy.getVoiceServiceApi()
         if (voiceServiceApi != null) {
           voiceServiceApi.register(accessToken)
-          promise.resolve(null)
+          return@Function
         } else {
-          promise.reject("TWILIO_VOICE_ERROR", "Voice service not available")
+          throw Exception("Voice service not available")
         }
       } catch (e: Exception) {
         Log.e(TAG, "Error registering: ${e.message}")
-        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
+        throw e
       }
     }
 
     /**
      * Unregister for incoming calls with the provided access token
-     * This is analogous to the voice_unregister method in the React Native module
+     * This is analogous to the unregister method in the ExpoModule.ts
      */
-    @ReactMethod
-    fun voice_unregister(accessToken: String, promise: Promise) {
+    Function("voice_unregister") { accessToken: String ->
       try {
         // Unregister for incoming calls
         val voiceServiceApi = VoiceApplicationProxy.getVoiceServiceApi()
         if (voiceServiceApi != null) {
           voiceServiceApi.unregister(accessToken)
-          promise.resolve(null)
+          return@Function
         } else {
-          promise.reject("TWILIO_VOICE_ERROR", "Voice service not available")
+          throw Exception("Voice service not available")
         }
       } catch (e: Exception) {
         Log.e(TAG, "Error unregistering: ${e.message}")
-        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
+        throw e
       }
     }
 
     /**
      * Get the SDK version
-     * This is analogous to the voice_getVersion method in the React Native module
+     * This is analogous to the getVersion method in the ExpoModule.ts
      */
-    @ReactMethod
-    fun voice_getVersion(promise: Promise) {
-      try {
-        val version = Voice.getVersion()
-        promise.resolve(version)
-      } catch (e: Exception) {
-        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
-      }
+    Function("voice_getVersion") {
+      return@Function Voice.getVersion()
     }
 
     /**
      * Handle a Firebase message for incoming calls
-     * This is analogous to the voice_handleEvent method in the React Native module
+     * This is analogous to the handleEvent method in the ExpoModule.ts
      */
-    @ReactMethod
-    fun voice_handleEvent(remoteMessage: ReadableMap, promise: Promise) {
+    Function("voice_handleEvent") { remoteMessage: Map<String, String> ->
       try {
-        val messageMap = remoteMessage.toHashMap() as Map<String, String>
-        val valid = Voice.handleMessage(reactApplicationContext as Context, messageMap)
-        promise.resolve(valid)
+        val valid = Voice.handleMessage(appContext.reactContext as Context, remoteMessage as Map<String, String>)
+        return@Function valid
       } catch (e: Exception) {
         Log.e(TAG, "Error handling message: ${e.message}")
-        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
+        throw e
       }
     }
-    
-    // Helper method to convert ReadableMap to HashMap
-    private fun ReadableMap.toHashMap(): HashMap<String, Any> {
-      val result = HashMap<String, Any>()
-      val iterator = this.keySetIterator()
-      while (iterator.hasNextKey()) {
-        val key = iterator.nextKey()
-        when (this.getType(key)) {
-          com.facebook.react.bridge.ReadableType.Null -> result[key] = "null"
-          com.facebook.react.bridge.ReadableType.Boolean -> result[key] = this.getBoolean(key)
-          com.facebook.react.bridge.ReadableType.Number -> result[key] = this.getDouble(key)
-          com.facebook.react.bridge.ReadableType.String -> result[key] = this.getString(key) ?: ""
-          com.facebook.react.bridge.ReadableType.Map -> result[key] = this.getMap(key)?.toHashMap() ?: HashMap<String, Any>()
-          else -> result[key] = ""
-        }
-      }
-      return result
-    }
+  }
 }
