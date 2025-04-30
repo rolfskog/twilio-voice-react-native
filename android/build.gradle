@@ -75,12 +75,7 @@ dependencies {
   implementation "com.google.firebase:firebase-messaging:${versions.firebaseMessaging}"
   implementation "com.twilio:audioswitch:${versions.audioSwitch}"
   implementation 'com.google.android.material:material:1.1.0'
-  
-  // Expo modules dependencies
-  implementation "expo.modules.core:core:${versions.expoModulesCore}"
-  implementation "expo.modules.kotlin:kotlin-api:1.0.0"
-  implementation "expo.modules.kotlin:kotlin-compiler:1.0.0"
-  implementation "expo.modules.kotlin:kotlin-runtime:1.0.0"
+
 
   constraints {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0") {
