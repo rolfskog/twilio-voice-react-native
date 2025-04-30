@@ -1,3 +1,9 @@
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useExpoPublishing()
+
 buildscript {
   ext.versions = [
     'java'               : JavaVersion.VERSION_11,
@@ -8,7 +14,6 @@ buildscript {
     'androidxLifecycle'  : '2.2.0',
     'audioSwitch'        : '1.1.8',
     'firebaseMessaging'  : '23.4.0',
-    'expoModulesCore'    : '1.2.7',
     'kotlin'             : '1.9.24'
   ]
   if (project == rootProject) {
@@ -81,9 +86,6 @@ dependencies {
   implementation "com.twilio:audioswitch:${versions.audioSwitch}"
   implementation 'com.google.android.material:material:1.1.0'
   
-  // Expo modules dependencies
-  implementation "expo.modules.core:core:${versions.expoModulesCore}"
-
 
   constraints {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0") {
