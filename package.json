@@ -13,6 +13,7 @@
     "android",
     "ios",
     "cpp",
+    "app.plugin.js",
     "twilio-voice-react-native.podspec",
     "!lib/typescript/test/app",
     "!android/build",
