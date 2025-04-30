@@ -5,41 +5,47 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.annotation.NonNull
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.Promise
 import com.twilio.voice.Call
 import com.twilio.voice.CallException
 import com.twilio.voice.ConnectOptions
 import com.twilio.voice.Voice
-import expo.modules.kotlin.modules.Module
-import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.core.ExportedModule
+import expo.modules.core.Promise as ExpoPromise
 import java.util.HashMap
 import java.util.UUID
 
-class ExpoModule : Module() {
+class ExpoModule(reactContext: ReactApplicationContext) : ExportedModule(reactContext) {
   private val TAG = "TwilioVoiceExpoModule"
   private val mainHandler = Handler(Looper.getMainLooper())
 
-  override fun definition() = ModuleDefinition {
-    Name("TwilioVoiceExpo")
+  override fun getName(): String {
+    return "TwilioVoiceExpo"
+  }
 
-    /**
-     * Connect to a Twilio Voice call with the provided access token and parameters
-     * This is analogous to the voice_connect_android method in the React Native module
-     */
-    Function("voice_connect") { accessToken: String, twimlParams: Map<String, Any>, notificationDisplayName: String? ->
-      try {
-        val callRecordDatabase = VoiceApplicationProxy.getCallRecordDatabase()
-        val uuid = UUID.randomUUID().toString()
-        val callRecord = callRecordDatabase.create(uuid)
+  /**
+   * Connect to a Twilio Voice call with the provided access token and parameters
+   * This is analogous to the voice_connect_android method in the React Native module
+   */
+  @ReactMethod
+  fun voice_connect(accessToken: String, twimlParams: ReadableMap, notificationDisplayName: String?, promise: Promise) {
+    try {
+      val callRecordDatabase = VoiceApplicationProxy.getCallRecordDatabase()
+      val uuid = UUID.randomUUID().toString()
+      val callRecord = callRecordDatabase.create(uuid)
 
-        val connectOptionsBuilder = ConnectOptions.Builder(accessToken)
-          .params(twimlParams as HashMap<String, String>)
+      val connectOptionsBuilder = ConnectOptions.Builder(accessToken)
+        .params(twimlParams.toHashMap() as HashMap<String, String>)
 
-        if (notificationDisplayName != null && notificationDisplayName.isNotEmpty()) {
-          connectOptionsBuilder.displayName(notificationDisplayName)
-        }
+      if (notificationDisplayName != null && notificationDisplayName.isNotEmpty()) {
+        connectOptionsBuilder.displayName(notificationDisplayName)
+      }
 
-        val connectOptions = connectOptionsBuilder.build()
-        val call = Voice.connect(appContext.reactContext as Context, connectOptions, object : Call.Listener {
+      val connectOptions = connectOptionsBuilder.build()
+      val call = Voice.connect(reactApplicationContext as Context, connectOptions, object : Call.Listener {
           override fun onConnectFailure(call: Call, callException: CallException) {
             Log.e(TAG, "Connect failure: ${callException.message}")
             callRecordDatabase.remove(uuid)
@@ -74,18 +80,19 @@ class ExpoModule : Module() {
         callRecord.setCall(call)
 
         // Return the call info in the same format as the React Native module
-        return@Function mapOf(
-          "uuid" to uuid,
-          "sid" to (call.sid ?: ""),
-          "state" to 0, // CONNECTING state
-          "from" to "",
-          "to" to "",
-          "isOnHold" to false,
-          "isMuted" to false
-        )
+        val result = HashMap<String, Any>()
+        result["uuid"] = uuid
+        result["sid"] = (call.sid ?: "")
+        result["state"] = 0 // CONNECTING state
+        result["from"] = ""
+        result["to"] = ""
+        result["isOnHold"] = false
+        result["isMuted"] = false
+        
+        promise.resolve(result)
       } catch (e: Exception) {
         Log.e(TAG, "Error connecting: ${e.message}")
-        throw e
+        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
       }
     }
 
@@ -93,19 +100,20 @@ class ExpoModule : Module() {
      * Register for incoming calls with the provided access token
      * This is analogous to the voice_register method in the React Native module
      */
-    Function("voice_register") { accessToken: String ->
+    @ReactMethod
+    fun voice_register(accessToken: String, promise: Promise) {
       try {
         // Get the Firebase token and register for incoming calls
         val voiceServiceApi = VoiceApplicationProxy.getVoiceServiceApi()
         if (voiceServiceApi != null) {
           voiceServiceApi.register(accessToken)
-          return@Function
+          promise.resolve(null)
         } else {
-          throw Exception("Voice service not available")
+          promise.reject("TWILIO_VOICE_ERROR", "Voice service not available")
         }
       } catch (e: Exception) {
         Log.e(TAG, "Error registering: ${e.message}")
-        throw e
+        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
       }
     }
 
@@ -113,19 +121,20 @@ class ExpoModule : Module() {
      * Unregister for incoming calls with the provided access token
      * This is analogous to the voice_unregister method in the React Native module
      */
-    Function("voice_unregister") { accessToken: String ->
+    @ReactMethod
+    fun voice_unregister(accessToken: String, promise: Promise) {
       try {
         // Unregister for incoming calls
         val voiceServiceApi = VoiceApplicationProxy.getVoiceServiceApi()
         if (voiceServiceApi != null) {
           voiceServiceApi.unregister(accessToken)
-          return@Function
+          promise.resolve(null)
         } else {
-          throw Exception("Voice service not available")
+          promise.reject("TWILIO_VOICE_ERROR", "Voice service not available")
         }
       } catch (e: Exception) {
         Log.e(TAG, "Error unregistering: ${e.message}")
-        throw e
+        promise.reject("TWILIO_VOICE_ERROR", e.message, e)
       }
     }
 
