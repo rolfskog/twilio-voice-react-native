@@ -88,22 +88,24 @@ const withTwilioVoiceAndroid = (config) => {
 
   // Add the necessary dependencies to the app build.gradle
   config = withAppBuildGradle(config, (config) => {
-    if (
-      !config.modResults.includes("implementation 'com.twilio:voice-android:")
-    ) {
-      const voiceAndroidVersion = '6.7.1'; // Use the same version as in the original build.gradle
-      const audioSwitchVersion = '1.1.8';
+    const voiceAndroidVersion = '6.7.1'; // Use the same version as in the original build.gradle
+    const audioSwitchVersion = '1.1.8';
 
-      // Add the Twilio Voice and AudioSwitch dependencies
-      const pattern = /dependencies\s*{/;
-      const twilioDependencies = `dependencies {
-    implementation 'com.twilio:voice-android:${voiceAndroidVersion}'
-    implementation 'com.twilio:audioswitch:${audioSwitchVersion}'`;
+    // Check if the Twilio dependencies already exist in the build.gradle
+    const hasTwilioVoice = config.modResults.dependencies.some((dependency) =>
+      dependency.includes('com.twilio:voice-android')
+    );
 
-      config.modResults = config.modResults.replace(
-        pattern,
-        twilioDependencies
-      );
+    // Add Twilio Voice dependency if not already present
+    if (!hasTwilioVoice) {
+      config.modResults.dependencies.push({
+        implementation: `'com.twilio:voice-android:${voiceAndroidVersion}'`,
+      });
+
+      // Add AudioSwitch dependency
+      config.modResults.dependencies.push({
+        implementation: `'com.twilio:audioswitch:${audioSwitchVersion}'`,
+      });
     }
 
     return config;
@@ -111,15 +113,38 @@ const withTwilioVoiceAndroid = (config) => {
 
   // Add the necessary repositories to the project build.gradle
   config = withProjectBuildGradle(config, (config) => {
-    if (
-      !config.modResults.includes('maven { url "https://maven.google.com/" }')
-    ) {
-      const pattern = /allprojects\s*{[^}]*repositories\s*{/;
-      const googleMavenRepo = `allprojects {
-    repositories {
-        maven { url "https://maven.google.com/" }`;
+    // Check if we need to add the Google Maven repository
+    const buildscriptRepositories =
+      config.modResults.buildscript?.repositories || [];
+    const projectRepositories =
+      config.modResults.allprojects?.repositories || [];
 
-      config.modResults = config.modResults.replace(pattern, googleMavenRepo);
+    // Function to check if a repository list already has Google Maven
+    const hasGoogleMaven = (repos) => {
+      return repos.some((repo) => {
+        return (
+          repo.maven &&
+          repo.maven.url &&
+          (repo.maven.url.includes('maven.google.com') ||
+            repo.maven.url.includes('google()'))
+        );
+      });
+    };
+
+    // Add Google Maven repository if not present
+    if (
+      !hasGoogleMaven(buildscriptRepositories) &&
+      buildscriptRepositories.push
+    ) {
+      buildscriptRepositories.push({
+        maven: { url: 'https://maven.google.com/' },
+      });
+    }
+
+    if (!hasGoogleMaven(projectRepositories) && projectRepositories.push) {
+      projectRepositories.push({
+        maven: { url: 'https://maven.google.com/' },
+      });
     }
 
     return config;
