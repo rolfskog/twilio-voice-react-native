@@ -130,4 +130,24 @@ public class VoiceApplicationProxy {
     }
     return VoiceApplicationProxy.instance.voiceServiceApi;
   }
+  
+  // Firebase Cloud Messaging token for push notifications
+  private static String fcmToken = null;
+  
+  /**
+   * Set the FCM token for push notifications
+   * @param token The FCM token
+   */
+  public static void setFcmToken(String token) {
+    fcmToken = token;
+    logger.debug("FCM Token set: " + token);
+  }
+  
+  /**
+   * Get the FCM token for push notifications
+   * @return The FCM token or null if not set
+   */
+  public static String getFcmToken() {
+    return fcmToken;
+  }
 }

@@ -1,6 +1,3 @@
-def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
-apply from: expoModulesCorePlugin
-applyKotlinExpoModulesCorePlugin()
 
 buildscript {
   ext.versions = [
@@ -12,7 +9,8 @@ buildscript {
     'androidxLifecycle'  : '2.2.0',
     'audioSwitch'        : '1.1.8',
     'firebaseMessaging'  : '23.4.0',
-    'kotlin'             : '1.9.24'
+    'kotlin'             : '1.9.24',
+    'expoModulesVersion' : '2.3.12'
   ]
   if (project == rootProject) {
     repositories {
@@ -31,6 +29,13 @@ buildscript {
 apply plugin: 'com.android.library'
 apply plugin: "kotlin-android"
 
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useExpoPublishing()
+
+
 def safeExtGet(prop, fallback) {
   rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
 }
@@ -43,15 +48,6 @@ android {
     targetSdkVersion safeExtGet('TwilioVoiceReactNative_targetSdkVersion', 34)
     versionCode 1
     versionName "1.0"
-  }
-
-  afterEvaluate {
-    tasks.named("packageDebugResources").configure {
-      it.dependsOn(":expo-modules-core:generateDebugResValues")
-    }
-    tasks.named("packageReleaseResources").configure {
-      it.dependsOn(":expo-modules-core:generateReleaseResValues")
-    }
   }
 
   buildTypes {
