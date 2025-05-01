@@ -52,7 +52,6 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.ServiceCompat;
 
-import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.twilio.voice.AcceptOptions;
 import com.twilio.voice.Call;
@@ -65,36 +64,6 @@ import java.util.UUID;
 public class VoiceService extends Service {
   private static final SDKLog logger = new SDKLog(VoiceService.class);
   public class VoiceServiceAPI extends Binder {
-    // Registration listener for Twilio Voice SDK
-    private final Voice.RegistrationListener registrationListener = new Voice.RegistrationListener() {
-      @Override
-      public void onRegistered(String accessToken, String fcmToken) {
-        logger.debug("Successfully registered FCM token: " + fcmToken);
-        WritableMap params = Arguments.createMap();
-        params.putString("accessToken", accessToken);
-        params.putString("fcmToken", fcmToken);
-        sendJSEvent(ScopeVoice, constructJSMap(VoiceEventType, "registered", params));
-      }
-
-      @Override
-      public void onError(String accessToken, String fcmToken, Exception error) {
-        logger.error("Registration error: " + error.getMessage());
-        WritableMap params = Arguments.createMap();
-        params.putString("accessToken", accessToken);
-        params.putString("fcmToken", fcmToken);
-        params.putMap(VoiceErrorKeyError, serializeError(error));
-        sendJSEvent(ScopeVoice, constructJSMap(VoiceEventType, VoiceEventError, params));
-      }
-    };
-    
-    /**
-     * Get the registration listener for Twilio Voice SDK
-     * @return The registration listener
-     */
-    public Voice.RegistrationListener getRegistrationListener() {
-      return registrationListener;
-    }
-    
     public Call connect(@NonNull ConnectOptions cxnOptions,
                         @NonNull Call.Listener listener) {
       logger.debug("connect");
