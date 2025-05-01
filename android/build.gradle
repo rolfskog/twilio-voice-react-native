@@ -45,6 +45,15 @@ android {
     versionName "1.0"
   }
 
+  afterEvaluate {
+    tasks.named("packageDebugResources").configure {
+      it.dependsOn(":expo-modules-core:generateDebugResValues")
+    }
+    tasks.named("packageReleaseResources").configure {
+      it.dependsOn(":expo-modules-core:generateReleaseResValues")
+    }
+  }
+
   buildTypes {
     release {
       minifyEnabled false
